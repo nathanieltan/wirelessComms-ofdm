@@ -42,9 +42,9 @@ end
 headers_start = idx+length(timingHeader)*3;
 
 cyclic_headers_rx = rx_phase_corrected(headers_start:headers_start + 7999);
-headers_rx = zeros(64,100);
-HEADERS_rx = zeros(64,100);  % FFT of headers_rx
-H_ests = zeros(64,100);
+headers_rx = zeros(64,10);
+HEADERS_rx = zeros(64,10);  % FFT of headers_rx
+H_ests = zeros(64,10);
 
 for n = 1:10
     headers_rx(:,n) = cyclic_headers_rx(80*(n-1)+17:80*n); 
@@ -68,9 +68,10 @@ f_drift = zeros(msg_block_num,1);
 for n = 1:msg_block_num
    ys_rx(:,n) = cyclic_y_rx((n-1)*80+17:80*n); 
    Ys_rx(:,n) = fft(ys_rx(:,n));
-   f_drift(n) = 0.25*(angle(Ys_rx(7,n)/message(64*(n-1)+7))+angle(Ys_rx(21,n)/message(64*(n-1)+21))+angle(Ys_rx(44,n)/message(64*(n-1)+44))+angle(Ys_rx(58,n)/message(64*(n-1)+58)));
-   Ys_rx(:,n) = Ys_rx(:,n)./exp(j*f_drift(n));
-   X_est  = [X_est;Ys_rx(:,n)./(H_est)];
+   ys_H(:,n)  = [Ys_rx(:,n)./(H_est)];
+   f_drift(n) = 0.25*(angle(ys_H(7,n)/message(64*(n-1)+7))+angle(ys_H(21,n)/message(64*(n-1)+21))+angle(ys_H(44,n)/message(64*(n-1)+44))+angle(ys_H(58,n)/message(64*(n-1)+58)));
+   X_est = [X_est; ys_H(:,n)./exp(j*f_drift(n))];
+   
 end
 
 
@@ -78,7 +79,7 @@ X_adjust = sign(real(X_est));
 
 errors = 0;
 
-for k = 1:msg_block_num
+for k = 1:msg_block_num-15
     for n = 1:64
         if(real(X_adjust(n+64*(k-1))) ~= message(n+64*(k-1)))
             errors = errors+1;
@@ -86,7 +87,7 @@ for k = 1:msg_block_num
     end
 end
 
-percentError = errors/(length(X_adjust))
+percentError = errors/(length(X_adjust)-(15*64))
 plot(message);
 hold on;
 plot(X_adjust, 'o');
