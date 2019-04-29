@@ -14,7 +14,7 @@ fclose(f2);
 % imaginary part
 rx = zeros(length(tmp)/2,1);
 rx = tmp(1:2:end)+j*tmp(2:2:end);
-
+%%
 HEADER_tx = header;
 
 % Cross correlates to find start of lts
