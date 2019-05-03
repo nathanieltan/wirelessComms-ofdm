@@ -23,6 +23,14 @@ STS=[0, 0, 1+j, 0,0,0,-1-j, 0,0,0,1+j,0,0,0,-1-j, 0,0,0,1+j,0,0,0,0,0,0,0,-1-j,0
 [Ryx, lags] = xcorr(beacon, [LTS]);
 [mm, ii] = max(abs(Ryx));
 idx = lags(ii) + 1 - 64;
-lts_rx = beacon(idx:idx+length(LTS*2.5) - 1);
+lts_rx = beacon(idx:idx+length(LTS*3) - 1);
 
-plot(real(lts_rx))
+%Schmidl-Cox Algorithm
+angle_sum  = 0;
+for n = 1: 64
+   angle_sum = angle_sum + angle(lts_rx(128+n)/lts_rx(64+n)); 
+end
+
+f_delta_hat = angle_sum/(64*64);
+
+rx_phase_corrected = zeros(length(rx),1);
