@@ -30,16 +30,35 @@ STS=[0, 0, 1+j, 0,0,0,-1-j, 0,0,0,1+j,0,0,0,-1-j, 0,0,0,1+j,0,0,0,0,0,0,0,-1-j,0
 [Ryx, lags] = xcorr(rx, [lts_t]);
 [mm, ii] = max(abs(Ryx));
 idx = lags(ii) + 1 - 64;
-lts_rx = rx(idx:idx+length(lts_t*3) - 1);
+lts_rx = rx(idx:idx+length(lts_t)*2.5 - 1);
 
 plot(lags, abs(Ryx))
 
 %Schmidl-Cox Algorithm
 angle_sum  = 0;
 for n = 1: 64
-  % angle_sum = angle_sum + angle(lts_rx(128+n)/lts_rx(64+n)); 
+   angle_sum = angle_sum + angle(lts_rx(96+n)/lts_rx(32+n)); 
 end
 
-%f_delta_hat = angle_sum/(64*64);
+f_delta_hat = angle_sum/(64*64);
 
-%rx_phase_corrected = zeros(length(rx),1);
+rx_phase_corrected = zeros(240,1);
+
+% Correct phase offset
+for k = 1:240
+    rx_phase_corrected(k) = rx(idx+k-1)/exp(1j*f_delta_hat*(k-1));
+end
+
+%%
+% Channel Estimation
+headers_rx = zeros(64,2);
+HEADERS_rx = zeros(64,2);  % FFT of headers_rx
+H_ests = zeros(64,2);
+
+for n = 1:2
+    headers_rx(:,n) = rx_phase_corrected((n-1)*64+33:(n-1)*64+96);
+    HEADERS_rx(:,n) = fft(headers_rx(:,n));
+    H_ests(:,n) = HEADERS_rx(:,n)./(lts_f');
+end
+
+H_est = mean(H_ests,2);
