@@ -93,7 +93,7 @@ for k=1:64
 end
 
 % Snaps subcarriers to 1 and -1
-SIGNAL_FIELD_SIGNED = sign(SIGNAL_FIELD_CORRECTED);
+SIGNAL_FIELD_SIGNED = sign(real(SIGNAL_FIELD_CORRECTED));
 
 
 plot(real(SIGNAL_FIELD_CORRECTED));
