@@ -1,21 +1,21 @@
-% Open the file containing the received samples
-f2 = fopen('rx.dat', 'rb');
-
-% read data from the file
-tmp = fread(f2, 'float32');
-
-% close the file
-fclose(f2);
-
-% since the USRP stores the data in an interleaved fashion
-% with real followed by imaginary samples 
-% create a vector of half the length of the received values to store the
-% data. Make every other sample the real part and the remaining samples the
-% imaginary part
-rx = zeros(length(tmp)/2,1);
-rx = tmp(1:2:end)+j*tmp(2:2:end);
-
-%rx = rx_new;
+% % Open the file containing the received samples
+% f2 = fopen('rx.dat', 'rb');
+% 
+% % read data from the file
+% tmp = fread(f2, 'float32');
+% 
+% % close the file
+% fclose(f2);
+% 
+% % since the USRP stores the data in an interleaved fashion
+% % with real followed by imaginary samples 
+% % create a vector of half the length of the received values to store the
+% % data. Make every other sample the real part and the remaining samples the
+% % imaginary part
+% rx = zeros(length(tmp)/2,1);
+% rx = tmp(1:2:end)+j*tmp(2:2:end);
+% 
+rx = rx_new;
 
 %%
 
@@ -49,10 +49,10 @@ end
 f_delta_hat = angle_sum/(64*64);
 
 % Samples 1-128 are the lts, samples 129-208 are the signal field
-rx_phase_corrected = zeros(208,1);
+rx_phase_corrected = zeros(10000,1);
 
 % Correct phase offset
-for k = 1:208
+for k = 1:10000
     rx_phase_corrected(k) = rx(idx+k-1)/exp(1j*f_delta_hat*(k-1));
 end
 
@@ -95,7 +95,43 @@ end
 % Snaps subcarriers to 1 and -1
 SIGNAL_FIELD_SIGNED = sign(real(SIGNAL_FIELD_CORRECTED));
 
-
+plot(real(X_est),imag(X_est),'.');
+title('Signal Field');
 plot(real(SIGNAL_FIELD_CORRECTED));
 figure;
 plot(real(SIGNAL_FIELD_SIGNED));
+title('Signal Field Adjusted');
+
+msg_block_num = 15;
+
+ys_rx = zeros(64,msg_block_num);
+Ys_rx = zeros(64,msg_block_num); % FFT of ys_rx
+X_est = [];
+f_drift = zeros(msg_block_num,1);
+
+for n = 1:msg_block_num
+   ys_rx(:,n) = rx_phase_corrected((n-1)*80+240+17:240+80*n); 
+   Ys_rx(:,n) = fft(ys_rx(:,n));
+   ys_H(:,n)  = [Ys_rx(:,n)./(H_est)];
+   
+   % Calculates drift based off of pilot subcarriers at 7,21,44, and 58
+   f_drift(n) = 0.25*(angle(ys_H(7,n)/1)+angle(ys_H(21,n)/-1)+angle(ys_H(44,n)/1)+angle(ys_H(58,n)/1));
+   X_est = [X_est; ys_H(:,n)./exp(j*f_drift(n))];
+   
+end
+
+for k=1:length(X_est)
+   if abs(X_est(k))>20
+       X_est(k) = NaN;
+   end
+end
+
+figure;
+plot(real(X_est),imag(X_est),'.');
+xlabel('I');
+ylabel('Q');
+title('Constellation Plot');
+
+figure;
+plot(abs(H_est));
+title('Channel Estimation');
